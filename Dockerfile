@@ -1,14 +1,14 @@
-FROM openjdk:8-jdk-slim
-ENV PORT 8080
-ENV CLASSPATH /opt/lib
-EXPOSE 8080
+FROM ubuntu as clone
+RUN apt-get update
+RUN apt-get install -y git
+WORKDIR /app
+RUN git clone https://DharaniMoorthy:Moorthy28@github.com/DharaniMoorthy/webapp.git
 
-# copy pom.xml and wildcards to avoid this command failing if there's no target/lib directory
-COPY pom.xml target/lib* /opt/lib/
+FROM maven:3.5-jdk-8-alpine as build
+WORKDIR /app
+COPY --from=clone /app/webapp/ /app
+RUN mvn package
 
-# NOTE we assume there's only 1 jar in the target dir
-# but at least this means we don't have to guess the name
-# we could do with a better way to know the name - or to always create an app.jar or something
-COPY target/*.jar /opt/app.jar
-WORKDIR /opt
-CMD ["java", "-jar", "app.jar"]
+FROM tomcat:8.0.20-jre8
+WORKDIR /app
+COPY --from=build /app/target/WebApp.war  /usr/local/tomcat/webapps/WebApp.war
